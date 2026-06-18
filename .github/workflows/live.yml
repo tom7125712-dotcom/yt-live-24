@@ -8,35 +8,66 @@ permissions:
   contents: read
 
 concurrency:
-  group: "yt-live"
+  group: yt-live
   cancel-in-progress: true
 
 jobs:
   stream:
     runs-on: ubuntu-latest
+
     steps:
       - name: 取得專案檔案
         uses: actions/checkout@v4
 
-      - name: 檢查串流金鑰
+      - name: 列出專案檔案
+        run: ls -la
+
+      - name: 檢查串流金鑰與檔案
         run: |
           if [ -z "${{ secrets.YOUTUBE_STREAM_KEY }}" ]; then
             echo "錯誤：YOUTUBE_STREAM_KEY 沒有設定"
             exit 1
           fi
 
-      - name: 安裝 FFmpeg 影音串流工具
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+          if [ ! -f "image-2.png" ]; then
+            echo "錯誤：找不到 image-2.png"
+            exit 1
+          fi
 
-      - name: 啟動直播推流
+          if [ ! -f "music-1.mp3" ]; then
+            echo "錯誤：找不到 music-1.mp3"
+            exit 1
+          fi
+
+      - name: 安裝 FFmpeg 影音串流工具
         run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: 啟動直播推流 5.5 小時
+        run: |
+          set +e
+
           timeout 19800 ffmpeg -hide_banner -loglevel info \
-          -re -loop 1 -framerate 30 -i image-2.jpg \
-          -stream_loop -1 -i music-1.mp3 \
-          -c:v libx264 -preset veryfast -b:v 2500k -maxrate 2500k -bufsize 5000k \
-          -pix_fmt yuv420p -g 60 \
-          -c:a aac -b:a 128k -ar 44100 \
-          -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
+            -re -loop 1 -framerate 30 -i image-2.png \
+            -stream_loop -1 -i music-1.mp3 \
+            -c:v libx264 -preset veryfast \
+            -b:v 2500k -maxrate 2500k -bufsize 5000k \
+            -pix_fmt yuv420p -g 60 \
+            -c:a aac -b:a 128k -ar 44100 \
+            -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
+
+          EXIT_CODE=$?
+
+          if [ "$EXIT_CODE" = "124" ]; then
+            echo "直播已滿 5.5 小時，準備交棒給下一個 Action"
+            exit 0
+          fi
+
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "FFmpeg 推流失敗，錯誤碼：$EXIT_CODE"
+            exit $EXIT_CODE
+          fi
 
       - name: 呼叫下一班機器人無縫接手
         if: success()
