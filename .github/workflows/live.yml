@@ -29,8 +29,8 @@ jobs:
             exit 1
           fi
 
-          if [ ! -f "image-2.png" ]; then
-            echo "錯誤：找不到 image-2.png"
+          if [ ! -f "image.jpg" ]; then
+            echo "錯誤：找不到 image.jpg"
             exit 1
           fi
 
@@ -49,7 +49,7 @@ jobs:
           set +e
 
           timeout 19800 ffmpeg -hide_banner -loglevel info \
-            -re -loop 1 -framerate 30 -i image-2.png \
+            -re -loop 1 -framerate 30 -i image.jpg \
             -stream_loop -1 -i music-1.mp3 \
             -vf "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,format=yuv420p" \
             -c:v libx264 -preset veryfast \
