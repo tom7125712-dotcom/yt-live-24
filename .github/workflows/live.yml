@@ -51,9 +51,10 @@ jobs:
           timeout 19800 ffmpeg -hide_banner -loglevel info \
             -re -loop 1 -framerate 30 -i image-2.png \
             -stream_loop -1 -i music-1.mp3 \
+            -vf "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:(ow-iw)/2:(oh-ih)/2,format=yuv420p" \
             -c:v libx264 -preset veryfast \
             -b:v 2500k -maxrate 2500k -bufsize 5000k \
-            -pix_fmt yuv420p -g 60 \
+            -g 60 \
             -c:a aac -b:a 128k -ar 44100 \
             -f flv "rtmp://a.rtmp.youtube.com/live2/${{ secrets.YOUTUBE_STREAM_KEY }}"
 
